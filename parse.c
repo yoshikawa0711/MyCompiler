@@ -15,8 +15,33 @@ Node *new_node_num(int val) {
 	return node;
 }
 
+void program() {
+	int i = 0;
+	while (!at_eof()) {
+		code[i++] = stmt();
+	}
+	code[i] = NULL;
+}
+
+Node *stmt() {
+	Node *node = expr();
+	expect(";");
+
+	return node;
+}
+
 Node *expr() {
+	Node *node = assign();
+
+	return node;
+}
+
+Node *assign() {
 	Node *node = equality();
+
+	if (consume("=")) { 
+		node = new_node(ND_ASSIGN, node, assign());
+	}
 
 	return node;
 }
@@ -110,6 +135,18 @@ Node *primary() {
 		return node;
 	}
 
+	// 次のトークンが変数の場合
+	// TODO: TK_IDENTかの確認をこことcosume_ident両方でやっているのを修正する
+	if (token->kind == TK_IDENT) {		
+		Token *tok = consume_ident();
+		if (tok) {
+			Node *node = calloc(1, sizeof(Node));
+			node->kind = ND_LVAR;
+			node->offset = (tok->str[0] - 'a' + 1) * 8;
+			return node;
+		}
+	}
+
 	// そうでなければ数値のはず
 	return new_node_num(expect_number());
 }
@@ -125,6 +162,19 @@ bool consume(char *op) {
 
 	token = token->next;
 	return true;
+}
+
+// 次のトークンが期待している変数の時には，トークンを１つ読み進めて
+// トークンを返す
+Token *consume_ident() {
+	if (token->kind != TK_IDENT) {
+		error_at(token->str, "変数ではありません");
+	}
+
+	Token *tok = token;
+	token = token->next;
+	
+	return tok;
 }
 
 // 次のトークンが期待している記号の時には，トークンを１つ読み進める．
@@ -200,11 +250,17 @@ Token *tokenize() {
 			continue;
 		}	
 		
-		if (strchr("+-*/()><", *p)) {
+		if (strchr("+-*/()><;=", *p)) {
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue;
 		}
 		
+		if ('a' <= *p && *p <= 'z') {
+			cur = new_token(TK_IDENT, cur, p++, 0);
+			cur->len = 1;
+			continue;
+		}
+
 		if (isdigit(*p)) {
 			char *q = p;
 			cur = new_token(TK_NUM, cur, p, 0);
