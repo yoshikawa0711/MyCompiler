@@ -137,12 +137,34 @@ Node *primary() {
 
 	// 次のトークンが変数の場合
 	// TODO: TK_IDENTかの確認をこことcosume_ident両方でやっているのを修正する
-	if (token->kind == TK_IDENT) {		
+	if (token->kind == TK_IDENT) {	
 		Token *tok = consume_ident();
 		if (tok) {
 			Node *node = calloc(1, sizeof(Node));
 			node->kind = ND_LVAR;
-			node->offset = (tok->str[0] - 'a' + 1) * 8;
+
+			LVar *lvar = find_lvar(tok);
+			if (lvar) {
+				node->offset = lvar->offset;
+			}
+			else {	
+				lvar = calloc(1, sizeof(LVar));
+				if (locals) {
+					lvar->next = locals;
+					lvar->name = tok->str;
+					lvar->len = tok->len;
+					lvar->offset = locals->offset + 8;
+					node->offset = lvar->offset;
+					locals = lvar;
+				}
+				else { // localsがNULLだった場合
+					lvar->name = tok->str;
+					lvar->len = tok->len;
+					lvar->offset = 8;
+					node->offset = lvar->offset;
+					locals = lvar;
+				}
+			}
 			return node;
 		}
 	}
@@ -219,6 +241,18 @@ void error_at(char *loc, char *fmt, ...) {
 	exit(1);
 }
 
+// 変数名を名前で検索する
+// 見つからなかった場合はNULLを返す
+LVar *find_lvar(Token *tok) {
+	for (LVar *var = locals; var; var = var->next) {
+		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len)) {
+			return var;
+		}
+	}
+
+	return NULL;
+}
+
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 	Token *tok = calloc(1, sizeof(Token));
@@ -256,8 +290,12 @@ Token *tokenize() {
 		}
 		
 		if ('a' <= *p && *p <= 'z') {
-			cur = new_token(TK_IDENT, cur, p++, 0);
-			cur->len = 1;
+			char *q;
+			for (q = p; 'a' <= *p && *p <= 'z'; p++) {
+				// 小文字の間だけ読み進める
+			}
+			cur = new_token(TK_IDENT, cur, q, 0);
+			cur->len = p - q;
 			continue;
 		}
 

@@ -5,6 +5,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct LVar LVar;
+
+// ローカル変数の型
+struct LVar {
+	LVar *next;		// 次の変数かNULL
+	char *name;		// 変数の名前
+	int len;		// 名前の長さ
+	int offset;		// RBPからのオフセット
+};
+
+// ローカル変数
+LVar *locals;
+
 // 抽象構文木のノードの種類
 typedef enum {
 	ND_ADD, 	// +
@@ -78,6 +91,8 @@ void expect(char *op);
 int expect_number();
 bool at_eof();
 void error_at(char *loc, char *fmt, ...);
+
+LVar *find_lvar(Token *tok);
 
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 Token *tokenize();
