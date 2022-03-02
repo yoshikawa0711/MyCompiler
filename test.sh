@@ -36,6 +36,9 @@ assert 18 "x = 10; y = x - 2; x + y;"
 assert 1 "i=j=1;i*j;" 
 assert 1 "k = 15; l = k / 2; k > l * 2;"
 assert 6 "foo = 1; bar = 2 + 3; foo + bar;"
+assert 14 "a = 3; b = 5 * 6 - 8; return a + b / 2;"
+assert 5 "return 5; return 8;"
+assert 14 "return_1 = 3; return_2 = 5 * 6 - 8; return return_1 + return_2 / 2;"
 
 echo OK
 

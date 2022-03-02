@@ -24,8 +24,21 @@ void program() {
 }
 
 Node *stmt() {
-	Node *node = expr();
-	expect(";");
+	Node *node;
+
+	if (token->kind == TK_RETURN) {
+		token = token->next;
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_RETURN;
+		node->lhs = expr();
+	} 
+	else {
+		node = expr();
+	}
+
+	if (!consume(";")) {
+		error_at(token->str, "';'ではないトークンです。");
+	}
 
 	return node;
 }
@@ -288,11 +301,17 @@ Token *tokenize() {
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue;
 		}
+
+		if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
+			cur = new_token(TK_RETURN, cur, p, 6);
+			p += 6;
+			continue;
+		}
 		
-		if ('a' <= *p && *p <= 'z') {
+		if (is_alpha(p[0])) {
 			char *q;
-			for (q = p; 'a' <= *p && *p <= 'z'; p++) {
-				// 小文字の間だけ読み進める
+			for (q = p; is_alnum(p[0]); p++) {
+				// 英数字の間だけ読み進める
 			}
 			cur = new_token(TK_IDENT, cur, q, 0);
 			cur->len = p - q;
@@ -316,4 +335,24 @@ Token *tokenize() {
 
 bool starts_with(char *p, char *q) {
 	return memcmp(p, q, strlen(q)) == 0;
+}
+
+bool is_alnum(char c) {
+	if (('a' <= c && c <= 'z') ||
+		('A' <= c && c <= 'Z') ||
+		('0' <= c && c <= '9') ||
+		(c == '_') ) {
+		return true;
+	}
+
+	return false;
+}
+
+bool is_alpha(char c) {
+	if (('a' <= c && c <= 'z') ||
+		('A' <= c && c <= 'Z') ) {
+		return true;
+	}
+
+	return false;
 }
